@@ -19,26 +19,25 @@ def convert_address(data):
     addr = ":".join(addr)
     return addr
 
-recv_socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x800))
 
 def parsing_ip_header(data):
-    ip_header = struct.unpack("!", data)
-    ip_version = convert_address()
-    ip_length = convert_address()
-    ip_dif_ser_code = convert_address()
-    ip_exp_con_noti = convert_address()
-    ip_total_length = convert_address()
-    ip_identification = convert_address()
-    ip_flags = convert_address()
-    ip_res_bit = convert_address()
-    ip_not_frag = convert_address()
-    ip_fragments = convert_address()
-    ip_fragments_off = convert_address()
-    ip_Time_to_live = convert_address()
-    ip_protocol = convert_address()
-    ip_head_check = convert_address()
-    ip_src_address = convert_address()
-    ip_dst_address = conver_address()
+    ip_header = struct.unpack("!1c1c2s2s2s1c1c2s4c4c", data)
+    ip_version = int(ip_header[0].hex(),16) >> 4
+    ip_length = int(ip_header[0].hex(),16) & 0x0f
+    ip_dif_ser_code = int(ip_header[1].hex(),16) >> 2
+    ip_exp_con_noti = int(ip_header[1].hex(), 16) & 0x03
+    ip_total_length = int(ip_header[2].hex(), 16)
+    ip_identification = int(ip_header[3].hex(), 16)
+    ip_flags = "0x"+ip_header[4].hex()
+    ip_res_bit = int(ip_header[4].hex(),16) >> 15
+    ip_not_frag = (int(ip_header[4].hex(),16) & 0x4fff) >> 14
+    ip_fragments = (int(ip_header[4].hex(),16) & 0x2fff) >> 13
+    ip_fragments_off = int(ip_header[4].hex(),16) & 0x1fff
+    ip_Time_to_live = int(ip_header[5].hex(), 16)
+    ip_protocol = int(ip_header[6].hex(),16)
+    ip_head_check = "0x"+ip_header[7].hex() 
+    ip_src_address = convert_ip_address(ip_header[8:12])
+    ip_dst_address = convert_ip_address(ip_header[12:16])
     
     print("====== ip address ======")
     print("ip_version : ", ip_version)
@@ -51,34 +50,45 @@ def parsing_ip_header(data):
     print(">>>reserved_bit : ", ip_res_bit)
     print(">>>not_fragment : ", ip_not_frag)
     print(">>>fragments : ", ip_fragments)
-    print(">>>fragments_offset : ", id_fragment_off)
+    print(">>>fragments_offset : ", ip_fragments_off)
     print("Time to live : ", ip_Time_to_live)
-    print("protocol : ", ip_protocpl)
+    print("protocol : ", ip_protocol)
     print("header checksum : ",ip_head_check)
     print("source_ip_address : ", ip_src_address)
     print("dest_ip_address : ", ip_dst_address)
+    
+    return ip_protocol
+
+def convert_ip_address(data):
+    ip_addr = list()
+    for i in data:
+        ip_addr.append(str(int(i.hex(),16)))
+    ip_addr = ".".join(ip_addr)
+    return ip_addr
 
 def parsing_tcp_header(data):
-    tcp_header = struct.unpack("!", data)
-    tcp_src_port = convert_address()
-    tcp_dec_port = convert_address()
-    tcp_seq_num = convert_address()
-    tcp_ack_num = convert_address()
-    tcp_header_len = convert_address()
-    tcp_flags = convert_address()
-    tcp_reserved = convert_address()
-    tcp_nonce = convert_address()
-    tcp_cwr = convert_address()
-    tcp_urgent = convert_address()
-    tcp_ack = convert_address()
-    tcp_push = convert_address()
-    tcp_reset = convert_address()
-    tcp_syn = convert_address()
-    tcp_fin = convert_address()
-    tcp_window = convert_address()
-    tcp_checksum = convert_address()
-    tcp_urgent = convert_address()
+    tcp_header = struct.unpack("!2s2s4s4s1c1c2s2s2s", data)
+    tcp_src_port = int(tcp_header[0].hex(),16)
+    tcp_dec_port = int(tcp_header[1].hex(), 16)
+    tcp_seq_num = int(tcp_header[2].hex(), 16)
+    tcp_ack_num = int(tcp_header[3].hex(), 16)
+    tcp_header_len = int(tcp_header[4].hex(), 16) >> 4
+    tcp_flags = (int(tcp_header[4].hex(), 16) & 0x0f)+int(tcp_header[5].hex(), 16) 
+    tcp_reserved = (int(tcp_header[4].hex(), 16) & 0x0f) >>1
+    tcp_nonce = int(tcp_header[4].hex(),16) & 0x01
+    tcp_cwr = int(tcp_header[5].hex(),16) >> 7
+    tcp_ecn = (int(tcp_header[5].hex(),16) & 0x40) >> 6
+    tcp_urgent = (int(tcp_header[5].hex(), 16) & 0x20) >> 5
+    tcp_ack = (int(tcp_header[5].hex(), 16) & 0x10) >> 4
+    tcp_push = (int(tcp_header[5].hex(), 16) & 0x08) >> 3
+    tcp_reset = (int(tcp_header[5].hex(), 16) & 0x04) >> 2
+    tcp_syn = (int(tcp_header[5].hex(), 16) & 0x02) >> 1
+    tcp_fin = (int(tcp_header[5].hex(),16) & 0x01)
+    tcp_window = int(tcp_header[6].hex(), 16)
+    tcp_checksum = "0x"+tcp_header[7].hex()
+    tcp_urgent = int(tcp_header[8].hex(), 16)
 
+    print("====== tcp address ======")
     print("src_port : ", tcp_src_port)
     print("dec_port : ", tcp_dec_port)
     print("seq_num : ", tcp_seq_num)
@@ -88,6 +98,7 @@ def parsing_tcp_header(data):
     print(">>>reserved : ", tcp_reserved)
     print(">>>nonce : ", tcp_nonce)
     print(">>>cwr : ", tcp_cwr)
+    print(">>>ecn : ", tcp_ecn)
     print(">>>urgent : ", tcp_urgent)
     print(">>>ack : ", tcp_ack)
     print(">>>push : ", tcp_push)
@@ -99,13 +110,25 @@ def parsing_tcp_header(data):
     print("urgent_pointer : ", tcp_urgent)
 
 def parsing_udp_header(data):
-    udp_header = struct.unpack("!", data)
-    udp_src_port = convert_address()
-    udp_dst_port = convert_address()
-    udp_leng = convert_address()
-    udp_checksum = convert_address()
-
+    udp_header = struct.unpack("!2s2s2s2s", data)
+    udp_src_port = int(udp_header[0].hex(), 16)
+    udp_dst_port = int(udp_header[1].hex(), 16)
+    udp_leng = int(udp_header[2].hex(), 16)
+    udp_checksum = "0x"+udp_header[3].hex()
+    
+    print("====== udp header ======")
     print("src_port : ", udp_src_port)
     print("dst_port : ", udp_dst_port)
     print("leng : ", udp_leng)
     print("header checksum : 0x", udp_checksum)
+
+recv_socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x800))
+
+while True:
+    data = recv_socket.recvfrom(65535)
+    parsing_ethernet_header(data[0][0:14])
+    protocol = parsing_ip_header(data[0][14:34])
+    if protocol == 6:
+        parsing_tcp_header(data[0][34:54])
+    elif protocol == 17:
+        parsing_udp_header(data[0][34:42])
