@@ -4,12 +4,12 @@ import struct
 def parsing_ethernet_header(data):
     ethernet_header = struct.unpack("!6c6c2s", data)
     ether_src = convert_address(ethernet_header[0:6])
-    ehter_dest = convert_address(ethernet_header[6:12])
+    ether_dest = convert_address(ethernet_header[6:12])
     ip_header = "0x"+ethernet_header[12].hex()
 
     print("====== ethernet header ======")
     print("src_mac_address: ", ether_src)
-    print("dest_mac_address: ", ehter_dest)
+    print("dest_mac_address: ", ether_dest)
     print("ip_version", ip_header)
 
 def convert_address(data):
@@ -85,7 +85,7 @@ def parsing_tcp_header(data):
     tcp_syn = (int(tcp_header[5].hex(), 16) & 0x02) >> 1
     tcp_fin = (int(tcp_header[5].hex(),16) & 0x01)
     tcp_window = int(tcp_header[6].hex(), 16)
-    tcp_checksum = "0x"+tcp_header[7].hex()
+    tcp_checksum = int(tcp_header[7].hex(),16)
     tcp_urgent = int(tcp_header[8].hex(), 16)
 
     print("====== tcp address ======")
@@ -120,7 +120,7 @@ def parsing_udp_header(data):
     print("src_port : ", udp_src_port)
     print("dst_port : ", udp_dst_port)
     print("leng : ", udp_leng)
-    print("header checksum : 0x", udp_checksum)
+    print("header checksum : ", udp_checksum)
 
 recv_socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x800))
 
